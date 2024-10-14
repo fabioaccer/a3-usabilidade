@@ -72,7 +72,7 @@ class _TarefaModalState extends State<TarefaModal> {
                   }).toList(),
                   onChanged: (value) {
                     setState(() {
-                      _selectedCategoryId = value;
+                      _categoriaSelecionada = value;
                     });
                   },
                 );

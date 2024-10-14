@@ -16,7 +16,6 @@ class CategoriaModal extends StatefulWidget {
 class _CategoriaModalState extends State<CategoriaModal> {
   final _nomeController = TextEditingController();
   bool _isLoading = false;
-  /* int? _categoriaSelecionada; */
 
   @override
   void initState() {

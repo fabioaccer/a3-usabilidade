@@ -8,12 +8,12 @@ class AuthProvider with ChangeNotifier {
 
   Usuario? get usuario => _usuario;
 
-  Future<bool> login(String email, String password) async {
-    Usuario? user = await UsuarioDb().listarUsuario(email, password);
-    if (user != null) {
-      _usuario = user;
+  Future<bool> login(String email, String senha) async {
+    Usuario? usuario = await UsuarioDb().listarUsuario(email, senha);
+    if (usuario != null) {
+      _usuario = usuario;
       SharedPreferences prefs = await SharedPreferences.getInstance();
-      prefs.setInt('usuarioId', user.id!);
+      prefs.setInt('usuarioId', usuario.id!);
       notifyListeners();
       return true;
     }
