@@ -1,4 +1,4 @@
-import 'package:app_a3/db/tarefa_db.dart';
+import 'package:listvo/db/tarefa_db.dart';
 import 'package:flutter/material.dart';
 import '../models/tarefa.dart';
 
@@ -11,18 +11,25 @@ class TarefaProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> criaTarefa(Tarefa tarefa) async {
-    await TarefaDb().criarTarefa(tarefa);
+  Future<void> listaTarefasPorCategoria(int usuarioId, int categoriaId) async {
+    _tarefas = await TarefaDb().listarTarefas(usuarioId);
+    _tarefas = _tarefas.where((tarefa) => tarefa.categoriaId == categoriaId).toList();
     notifyListeners();
+  }
+
+  Future<int> criaTarefa(Tarefa tarefa) async {
+    final id = await TarefaDb().criarTarefa(tarefa);
+    await listaTarefas(tarefa.usuarioId);
+    return id;
   }
 
   Future<void> editaTarefa(Tarefa tarefa) async {
     await TarefaDb().editarTarefa(tarefa);
-    notifyListeners();
+    await listaTarefas(tarefa.usuarioId);
   }
 
-  Future<void> excluiTarefa(int id) async {
+  Future<void> excluiTarefa(int id, int usuarioId) async {
     await TarefaDb().excluirTarefa(id);
-    notifyListeners();
+    await listaTarefas(usuarioId);
   }
 }

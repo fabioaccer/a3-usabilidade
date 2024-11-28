@@ -1,35 +1,52 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/tarefa.dart';
+import '../../models/categoria.dart';
 import '../../providers/tarefa_provider.dart';
 import '../../providers/auth_provider.dart';
-import '../../providers/categoria_provider.dart';
 import '../lembretes/lembretes_tarefa_screen.dart';
-import 'tarefa_modal.dart';
-import 'tarefa_detalhes_modal.dart';
+import '../tarefas/tarefa_modal.dart';
+import '../tarefas/tarefa_detalhes_modal.dart';
 
-class TarefasScreen extends StatefulWidget {
-  const TarefasScreen({super.key});
+class TarefasCategoriaScreen extends StatefulWidget {
+  final Categoria categoria;
+
+  const TarefasCategoriaScreen({super.key, required this.categoria});
 
   @override
-  State<TarefasScreen> createState() => _TarefasScreenState();
+  State<TarefasCategoriaScreen> createState() => _TarefasCategoriaScreenState();
 }
 
-class _TarefasScreenState extends State<TarefasScreen> {
+class _TarefasCategoriaScreenState extends State<TarefasCategoriaScreen> {
   final _searchController = TextEditingController();
 
-  Future<void> _carregaCategorias(BuildContext context) async {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _carregaTarefas(context);
+    });
+  }
+
+  Future<void> _carregaTarefas(BuildContext context) async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final categoriaProvider = Provider.of<CategoriaProvider>(context, listen: false);
+    final tarefaProvider = Provider.of<TarefaProvider>(context, listen: false);
     
     if (authProvider.usuario != null) {
-      await categoriaProvider.listaCategorias(authProvider.usuario!.id!);
+      await tarefaProvider.listaTarefasPorCategoria(
+        authProvider.usuario!.id!,
+        widget.categoria.id!
+      );
     }
   }
 
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   Future<void> _abreModal(BuildContext context, {Tarefa? tarefa}) async {
-    await _carregaCategorias(context);
-    
     if (context.mounted) {
       showModalBottomSheet(
         context: context,
@@ -49,33 +66,10 @@ class _TarefasScreenState extends State<TarefasScreen> {
           ),
         ),
         builder: (context) {
-          return TarefaModal(tarefa: tarefa);
+          return TarefaModal(tarefa: tarefa, categoriaId: widget.categoria.id);
         },
       );
     }
-  }
-
-  Future<void> _carregaTarefas(BuildContext context) async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final tarefaProvider = Provider.of<TarefaProvider>(context, listen: false);
-    
-    if (authProvider.usuario != null) {
-      await tarefaProvider.listaTarefas(authProvider.usuario!.id!);
-    }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _carregaTarefas(context);
-    });
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
   }
 
   @override
@@ -90,18 +84,18 @@ class _TarefasScreenState extends State<TarefasScreen> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    final usuarioId = authProvider.usuario!.id;
+    final tarefas = tarefaProvider.tarefas
+        .where((tarefa) => tarefa.categoriaId == widget.categoria.id)
+        .toList();
 
-    final tarefas = tarefaProvider.tarefas;
-    
     // Primeiro filtra as tarefas baseado na pesquisa
-    final tarefasFiltradas = _searchController.text.isEmpty 
-        ? tarefas 
-        : tarefas.where((tarefa) => 
+    final tarefasFiltradas = _searchController.text.isEmpty
+        ? tarefas
+        : tarefas.where((tarefa) =>
             tarefa.titulo.toLowerCase().contains(_searchController.text.toLowerCase()) ||
             tarefa.descricao.toLowerCase().contains(_searchController.text.toLowerCase())
           ).toList();
-    
+
     // Depois separa em pendentes e realizadas
     final tarefasPendentes = tarefasFiltradas.where((tarefa) => !tarefa.realizada).toList();
     final tarefasRealizadas = tarefasFiltradas.where((tarefa) => tarefa.realizada).toList();
@@ -119,26 +113,7 @@ class _TarefasScreenState extends State<TarefasScreen> {
             height: 1.0,
           ),
         ),
-        title: Row(
-          children: [
-            Image.asset(
-              'assets/icone.png',
-              height: 24,
-              width: 24,
-            ),
-            const SizedBox(width: 8),
-            const Text('Minhas tarefas'),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () {
-              authProvider.logout();
-              Navigator.pushReplacementNamed(context, '/login');
-            },
-          )
-        ],
+        title: Text(widget.categoria.nome),
       ),
       body: Column(
         children: [
@@ -173,13 +148,14 @@ class _TarefasScreenState extends State<TarefasScreen> {
                       padding: const EdgeInsets.all(10.0),
                       decoration: BoxDecoration(
                         color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(8),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          const SizedBox(height: 16),
                           const Padding(
-                            padding: EdgeInsets.only(left: 8.0, top: 8.0, bottom: 8.0),
+                            padding: EdgeInsets.only(left: 16.0),
                             child: Text(
                               'Pendentes',
                               style: TextStyle(
@@ -188,6 +164,7 @@ class _TarefasScreenState extends State<TarefasScreen> {
                               ),
                             ),
                           ),
+                          const SizedBox(height: 16),
                           if (tarefasPendentes.isEmpty)
                             Container(
                               margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
@@ -221,49 +198,45 @@ class _TarefasScreenState extends State<TarefasScreen> {
                                   decoration: BoxDecoration(
                                     color: Colors.white,
                                     borderRadius: BorderRadius.circular(8),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.grey.withOpacity(0.1),
-                                        spreadRadius: 1,
-                                        blurRadius: 2,
-                                        offset: const Offset(0, 1),
-                                      ),
-                                    ],
                                   ),
                                   child: ListTile(
-                                    leading: IconButton(
-                                      icon: const Icon(Icons.check_box_outline_blank, size: 20),
-                                      onPressed: () async {
-                                        tarefa.realizada = true;
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                                    leading: Checkbox(
+                                      value: tarefa.realizada,
+                                      onChanged: (bool? value) async {
+                                        tarefa.realizada = value ?? false;
                                         await tarefaProvider.editaTarefa(tarefa);
+                                        await _carregaTarefas(context);
                                       },
-                                      padding: EdgeInsets.zero,
                                     ),
-                                    title: Text(tarefa.titulo),
-                                    subtitle: Text(
-                                      '${tarefa.data} às ${tarefa.hora}',
+                                    title: Text(
+                                      tarefa.titulo,
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    subtitle: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [/* 
+                                        Text(
+                                          tarefa.descricao,
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        const SizedBox(height: 4), */
+                                        Text('${tarefa.data} às ${tarefa.hora}'),
+                                      ],
                                     ),
                                     trailing: PopupMenuButton<String>(
-                                      color: Colors.white,
-                                      icon: const Icon(Icons.more_vert, size: 20),
                                       itemBuilder: (context) => [
                                         const PopupMenuItem(
                                           value: 'details',
                                           child: Row(
                                             children: [
-                                              Icon(Icons.info_outline),
+                                              Icon(Icons.info),
                                               SizedBox(width: 8),
                                               Text('Ver detalhes'),
-                                            ],
-                                          ),
-                                        ),
-                                        const PopupMenuItem(
-                                          value: 'edit',
-                                          child: Row(
-                                            children: [
-                                              Icon(Icons.edit, size: 20),
-                                              SizedBox(width: 8),
-                                              Text('Editar'),
                                             ],
                                           ),
                                         ),
@@ -278,10 +251,20 @@ class _TarefasScreenState extends State<TarefasScreen> {
                                           ),
                                         ),
                                         const PopupMenuItem(
+                                          value: 'edit',
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.edit),
+                                              SizedBox(width: 8),
+                                              Text('Editar'),
+                                            ],
+                                          ),
+                                        ),
+                                        const PopupMenuItem(
                                           value: 'delete',
                                           child: Row(
                                             children: [
-                                              Icon(Icons.delete_outline, size: 20),
+                                              Icon(Icons.delete),
                                               SizedBox(width: 8),
                                               Text('Excluir'),
                                             ],
@@ -289,44 +272,48 @@ class _TarefasScreenState extends State<TarefasScreen> {
                                         ),
                                       ],
                                       onSelected: (value) async {
-                                        if (value == 'details') {
-                                          showDialog(
-                                            context: context,
-                                            builder: (context) => TarefaDetalhesModal(tarefa: tarefa),
-                                          );
-                                        } else if (value == 'edit') {
-                                          await _abreModal(context, tarefa: tarefa);
-                                        } else if (value == 'lembretes') {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) => LembretesTarefaScreen(
-                                                tarefa: tarefa,
+                                        switch (value) {
+                                          case 'details':
+                                            showDialog(
+                                              context: context,
+                                              builder: (context) => TarefaDetalhesModal(tarefa: tarefa),
+                                            );
+                                            break;
+                                          case 'lembretes':
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) => LembretesTarefaScreen(
+                                                  tarefa: tarefa,
+                                                ),
                                               ),
-                                            ),
-                                          );
-                                        } else if (value == 'delete') {
-                                          final confirma = await showDialog<bool>(
-                                            context: context,
-                                            builder: (context) => AlertDialog(
-                                              backgroundColor: Colors.white,
-                                              title: const Text('Excluir tarefa'),
-                                              content: const Text('Tem certeza que deseja excluir esta tarefa?'),
-                                              actions: [
-                                                TextButton(
-                                                  child: const Text('Cancelar'),
-                                                  onPressed: () => Navigator.of(context).pop(false),
-                                                ),
-                                                TextButton(
-                                                  child: const Text('Excluir'),
-                                                  onPressed: () => Navigator.of(context).pop(true),
-                                                ),
-                                              ],
-                                            ),
-                                          );
-                                          if (confirma == true) {
-                                            await tarefaProvider.excluiTarefa(tarefa.id!, tarefa.usuarioId);
-                                          }
+                                            );
+                                            break;
+                                          case 'edit':
+                                            await _abreModal(context, tarefa: tarefa);
+                                            break;
+                                          case 'delete':
+                                            bool? confirmacao = await showDialog<bool>(
+                                              context: context,
+                                              builder: (context) => AlertDialog(
+                                                title: const Text('Excluir tarefa'),
+                                                content: const Text('Tem certeza que deseja excluir esta tarefa?'),
+                                                actions: [
+                                                  TextButton(
+                                                    onPressed: () => Navigator.pop(context, false),
+                                                    child: const Text('Cancelar'),
+                                                  ),
+                                                  TextButton(
+                                                    onPressed: () => Navigator.pop(context, true),
+                                                    child: const Text('Excluir'),
+                                                  ),
+                                                ],
+                                              ),
+                                            );
+                                            if (confirmacao == true) {
+                                              await tarefaProvider.excluiTarefa(tarefa.id!, tarefa.usuarioId);
+                                            }
+                                            break;
                                         }
                                       },
                                     ),
@@ -342,13 +329,14 @@ class _TarefasScreenState extends State<TarefasScreen> {
                       padding: const EdgeInsets.all(10.0),
                       decoration: BoxDecoration(
                         color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(8),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          const SizedBox(height: 16),
                           const Padding(
-                            padding: EdgeInsets.only(left: 8.0, top: 8.0, bottom: 8.0),
+                            padding: EdgeInsets.only(left: 16.0),
                             child: Text(
                               'Realizadas',
                               style: TextStyle(
@@ -357,6 +345,7 @@ class _TarefasScreenState extends State<TarefasScreen> {
                               ),
                             ),
                           ),
+                          const SizedBox(height: 16),
                           if (tarefasRealizadas.isEmpty)
                             Container(
                               margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
@@ -390,60 +379,52 @@ class _TarefasScreenState extends State<TarefasScreen> {
                                   decoration: BoxDecoration(
                                     color: Colors.white,
                                     borderRadius: BorderRadius.circular(8),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.grey.withOpacity(0.1),
-                                        spreadRadius: 1,
-                                        blurRadius: 2,
-                                        offset: const Offset(0, 1),
-                                      ),
-                                    ],
                                   ),
                                   child: ListTile(
-                                    leading: IconButton(
-                                      icon: const Icon(Icons.check_box, size: 20),
-                                      onPressed: () async {
-                                        tarefa.realizada = false;
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                                    leading: Checkbox(
+                                      value: tarefa.realizada,
+                                      onChanged: (bool? value) async {
+                                        tarefa.realizada = value ?? false;
                                         await tarefaProvider.editaTarefa(tarefa);
+                                        await _carregaTarefas(context);
                                       },
-                                      padding: EdgeInsets.zero,
                                     ),
                                     title: Text(
                                       tarefa.titulo,
                                       style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w500,
                                         decoration: TextDecoration.lineThrough,
                                       ),
                                     ),
-                                    subtitle: Text(
-                                      '${tarefa.data} às ${tarefa.hora}',
-                                      style: const TextStyle(
-                                        decoration: TextDecoration.lineThrough,
-                                      ),
+                                    subtitle: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          tarefa.descricao,
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            decoration: TextDecoration.lineThrough,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text('${tarefa.data} às ${tarefa.hora}'),
+                                      ],
                                     ),
                                     trailing: PopupMenuButton<String>(
-                                      color: Colors.white,
-                                      icon: const Icon(Icons.more_vert, size: 20),
                                       itemBuilder: (context) => [
                                         const PopupMenuItem(
                                           value: 'details',
                                           child: Row(
                                             children: [
-                                              Icon(Icons.info_outline),
+                                              Icon(Icons.info),
                                               SizedBox(width: 8),
                                               Text('Ver detalhes'),
                                             ],
                                           ),
                                         ),
-                                        /* const PopupMenuItem(
-                                          value: 'edit',
-                                          child: Row(
-                                            children: [
-                                              Icon(Icons.edit, size: 20),
-                                              SizedBox(width: 8),
-                                              Text('Editar'),
-                                            ],
-                                          ),
-                                        ), */
                                         const PopupMenuItem(
                                           value: 'lembretes',
                                           child: Row(
@@ -458,7 +439,7 @@ class _TarefasScreenState extends State<TarefasScreen> {
                                           value: 'delete',
                                           child: Row(
                                             children: [
-                                              Icon(Icons.delete_outline, size: 20),
+                                              Icon(Icons.delete),
                                               SizedBox(width: 8),
                                               Text('Excluir'),
                                             ],
@@ -466,44 +447,45 @@ class _TarefasScreenState extends State<TarefasScreen> {
                                         ),
                                       ],
                                       onSelected: (value) async {
-                                        if (value == 'details') {
-                                          showDialog(
-                                            context: context,
-                                            builder: (context) => TarefaDetalhesModal(tarefa: tarefa),
-                                          );
-                                        } else if (value == 'edit') {
-                                          await _abreModal(context, tarefa: tarefa);
-                                        } else if (value == 'lembretes') {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) => LembretesTarefaScreen(
-                                                tarefa: tarefa,
+                                        switch (value) {
+                                          case 'details':
+                                            showDialog(
+                                              context: context,
+                                              builder: (context) => TarefaDetalhesModal(tarefa: tarefa),
+                                            );
+                                            break;
+                                          case 'lembretes':
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) => LembretesTarefaScreen(
+                                                  tarefa: tarefa,
+                                                ),
                                               ),
-                                            ),
-                                          );
-                                        } else if (value == 'delete') {
-                                          final confirma = await showDialog<bool>(
-                                            context: context,
-                                            builder: (context) => AlertDialog(
-                                              backgroundColor: Colors.white,
-                                              title: const Text('Excluir tarefa'),
-                                              content: const Text('Tem certeza que deseja excluir esta tarefa?'),
-                                              actions: [
-                                                TextButton(
-                                                  child: const Text('Cancelar'),
-                                                  onPressed: () => Navigator.of(context).pop(false),
-                                                ),
-                                                TextButton(
-                                                  child: const Text('Excluir'),
-                                                  onPressed: () => Navigator.of(context).pop(true),
-                                                ),
-                                              ],
-                                            ),
-                                          );
-                                          if (confirma == true) {
-                                            await tarefaProvider.excluiTarefa(tarefa.id!, tarefa.usuarioId);
-                                          }
+                                            );
+                                            break;
+                                          case 'delete':
+                                            bool? confirmacao = await showDialog<bool>(
+                                              context: context,
+                                              builder: (context) => AlertDialog(
+                                                title: const Text('Excluir tarefa'),
+                                                content: const Text('Tem certeza que deseja excluir esta tarefa?'),
+                                                actions: [
+                                                  TextButton(
+                                                    onPressed: () => Navigator.pop(context, false),
+                                                    child: const Text('Cancelar'),
+                                                  ),
+                                                  TextButton(
+                                                    onPressed: () => Navigator.pop(context, true),
+                                                    child: const Text('Excluir'),
+                                                  ),
+                                                ],
+                                              ),
+                                            );
+                                            if (confirmacao == true) {
+                                              await tarefaProvider.excluiTarefa(tarefa.id!, tarefa.usuarioId);
+                                            }
+                                            break;
                                         }
                                       },
                                     ),
@@ -524,9 +506,7 @@ class _TarefasScreenState extends State<TarefasScreen> {
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.deepPurple,
         foregroundColor: Colors.white,
-        onPressed: () async {
-          await _abreModal(context);
-        },
+        onPressed: () => _abreModal(context),
         child: const Icon(Icons.add),
       ),
     );

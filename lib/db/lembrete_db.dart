@@ -1,4 +1,4 @@
-import 'package:app_a3/models/lembrete.dart';
+import 'package:listvo/models/lembrete.dart';
 import './db_helper.dart';
 
 class LembreteDb {

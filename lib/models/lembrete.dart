@@ -36,4 +36,19 @@ class Lembrete {
         'usuarioId': usuarioId,
         'tarefaId': tarefaId,
       };
+
+  bool isExpirado() {
+    final partsData = data.split('/');
+    final partsHora = hora.split(':');
+    
+    final dataHoraLembrete = DateTime(
+      int.parse(partsData[2]), // ano
+      int.parse(partsData[1]), // mês
+      int.parse(partsData[0]), // dia
+      int.parse(partsHora[0]), // hora
+      int.parse(partsHora[1]), // minuto
+    );
+
+    return DateTime.now().isAfter(dataHoraLembrete);
+  }
 }

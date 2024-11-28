@@ -19,12 +19,42 @@ class DBHelper {
   }
 
   _initDB() async {
-    String path = join(await getDatabasesPath(), 'notys.db');
+    String path = join(await getDatabasesPath(), 'listvo.db');
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _createDB,
+      onUpgrade: _onUpgrade,
     );
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      // Backup dos dados
+      final tarefas = await db.query('tarefas');
+      
+      // Recria a tabela com a nova estrutura
+      await db.execute('DROP TABLE IF EXISTS tarefas');
+      await db.execute('''
+        CREATE TABLE tarefas(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          titulo TEXT,
+          descricao TEXT,
+          data TEXT,
+          hora TEXT,
+          realizada BOOLEAN,
+          usuarioId INTEGER,
+          categoriaId INTEGER NULL,
+          FOREIGN KEY (usuarioId) REFERENCES usuarios(id),
+          FOREIGN KEY (categoriaId) REFERENCES categorias(id)
+        );
+      ''');
+
+      // Restaura os dados
+      for (var tarefa in tarefas) {
+        await db.insert('tarefas', tarefa);
+      }
+    }
   }
 
   _createDB(Database db, int version) async {
@@ -40,7 +70,9 @@ class DBHelper {
       CREATE TABLE categorias(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         nome TEXT NOT NULL,
-        usuarioId INTEGER
+        usuarioId INTEGER,
+        cor TEXT,
+        FOREIGN KEY (usuarioId) REFERENCES usuarios(id)
       );
     ''');
 
@@ -53,7 +85,7 @@ class DBHelper {
         hora TEXT,
         realizada BOOLEAN,
         usuarioId INTEGER,
-        categoriaId INTEGER,
+        categoriaId INTEGER NULL,
         FOREIGN KEY (usuarioId) REFERENCES usuarios(id),
         FOREIGN KEY (categoriaId) REFERENCES categorias(id)
       );

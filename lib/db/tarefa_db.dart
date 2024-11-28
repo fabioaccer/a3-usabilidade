@@ -1,4 +1,4 @@
-import 'package:app_a3/models/tarefa.dart';
+import 'package:listvo/models/tarefa.dart';
 import './db_helper.dart';
 
 class TarefaDb {

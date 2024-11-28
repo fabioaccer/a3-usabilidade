@@ -1,4 +1,4 @@
-import 'package:app_a3/models/usuario.dart';
+import 'package:listvo/models/usuario.dart';
 import './db_helper.dart';
 
 class UsuarioDb {

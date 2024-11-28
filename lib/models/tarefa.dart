@@ -6,7 +6,7 @@ class Tarefa {
   String hora;
   bool realizada;
   int usuarioId;
-  int categoriaId;
+  int? categoriaId;
 
   Tarefa({
     this.id,
@@ -16,7 +16,7 @@ class Tarefa {
     required this.hora,
     required this.realizada,
     required this.usuarioId,
-    required this.categoriaId,
+    this.categoriaId,
   });
 
   factory Tarefa.fromMap(Map<String, dynamic> json) => Tarefa(
@@ -36,7 +36,7 @@ class Tarefa {
         'descricao': descricao,
         'data': data,
         'hora': hora,
-        'realizada': realizada,
+        'realizada': realizada ? 1 : 0,
         'usuarioId': usuarioId,
         'categoriaId': categoriaId,
       };

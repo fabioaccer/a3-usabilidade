@@ -20,7 +20,14 @@ class _CadastroScreenState extends State<CadastroScreen> {
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            Image.asset(
+              'assets/logo.png',
+              height: 120,
+              width: 120,
+            ),
+            const SizedBox(height: 32),
             TextField(
               controller: _emailController,
               decoration: const InputDecoration(labelText: "E-mail"),

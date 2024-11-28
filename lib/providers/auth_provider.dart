@@ -38,11 +38,35 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> verificaStatus() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    int? usuarioId = prefs.getInt('usuarioId');
-    if (usuarioId != null) {
-      _usuario = await UsuarioDb().listarUsuarioPorId(usuarioId);
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      int? usuarioId = prefs.getInt('usuarioId');
+      if (usuarioId != null) {
+        _usuario = await UsuarioDb().listarUsuarioPorId(usuarioId);
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Erro ao verificar status: $e');
+      _usuario = null;
       notifyListeners();
+    }
+  }
+
+  Future<bool> checkLoginStatus() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      int? usuarioId = prefs.getInt('usuarioId');
+      if (usuarioId != null) {
+        _usuario = await UsuarioDb().listarUsuarioPorId(usuarioId);
+        notifyListeners();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('Erro ao verificar login: $e');
+      _usuario = null;
+      notifyListeners();
+      return false;
     }
   }
 
