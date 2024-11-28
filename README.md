@@ -1,16 +1,15 @@
 # listvo
 
-A new Flutter project.
+Projeto A3 - USABILIDADE, WEB, MOBILE E GAMES
 
-## Getting Started
+## SOBRE
 
-This project is a starting point for a Flutter application.
+Listvo é um aplicativo de organização criado para simplificar o gerenciamento das tarefas e lembretes.Com um design minimalista e uma interface intuitiva,ele permite que você organize sua rotina de forma rápida e prática, sem distrações.
 
-A few resources to get you started if this is your first Flutter project:
+Responsáveis pelo projeto:
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+BEATRIZ DOS SANTOS DIAS BATISTA - 125111378452
+CRISTIANO DARIO DE AZEVEDO FILHO - 823216267
+EMANUEL BORGES ALVES MENEZES - 123222862
+FABIO FERREIRA DE LIMA MARTINS - 82329580
+PEDRO MOISÉS PEREIRA DA SILVA - 323119053
